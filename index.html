@@ -1,0 +1,209 @@
+ <!DOCTYPE html>
+<html>
+  <button onclick="showMsg()">Click Me</button>
+  
+<body style="background:#111;color:#fff;font-family:sans-serif;padding:10px">
+
+<h3>D66 Language (Final Core)</h3>
+
+<textarea id="code" style="width:100%;height:200px;background:#1e1e1e;color:#0f0;">
+set x 10
+add x 5
+print x
+
+if x > 10
+print big
+else
+print small
+end
+
+repeat 3
+print hello
+end
+
+function hi
+print bye
+end
+
+call hi
+</textarea>
+
+<br><br>
+<button onclick="run()">RUN</button>
+
+<pre id="out"></pre>
+<canvas id="game" width="400" height="200" style="border:1px solid white;"></canvas>
+<div style="margin-top:10px;">
+  <button ontouchstart="moveLeft()">⬅️</button>
+  <button ontouchstart="moveRight()">➡️</button>
+</div>
+<script>
+let player = {x:180, y:130, color:"red", speed:5};
+let roadY = 0;
+
+let vars = {};
+let funcs = {};
+
+function val(v){
+ if(!isNaN(v)) return Number(v);
+ return vars[v] ?? v;
+}
+
+function run(){
+
+ vars = {};
+ funcs = {};
+ out.innerText = "";
+
+ let lines = code.value.split("\n");
+
+ function exec(block){
+
+  for(let i=0;i<block.length;i++){
+
+   let line = block[i].trim();
+   if(line=="") continue;
+
+   let p = line.split(" ");
+
+   // SET
+   if(p[0]=="set"){
+     vars[p[1]] = val(p[2]);
+   }
+
+   // ADD
+   else if(p[0]=="add"){
+     vars[p[1]] = val(p[1]) + val(p[2]);
+   }
+
+   // PRINT
+   else if(p[0]=="print"){
+     out.innerText += val(p[1]) + "\n";
+   }
+
+   // IF ELSE
+   else if(p[0]=="if"){
+
+     let cond = val(p[1]) > val(p[3]);
+
+     let ifBlock = [];
+     let elseBlock = [];
+     let mode = "if";
+
+     i++;
+     while(block[i] && block[i].trim()!="end"){
+
+       if(block[i].trim()=="else"){
+         mode = "else";
+         i++;
+         continue;
+       }
+
+       if(mode=="if") ifBlock.push(block[i]);
+       else elseBlock.push(block[i]);
+
+       i++;
+     }
+
+     if(cond) exec(ifBlock);
+     else exec(elseBlock);
+   }
+
+   // LOOP
+   else if(p[0]=="repeat"){
+
+     let count = val(p[1]);
+     let loopBlock = [];
+
+     i++;
+     while(block[i] && block[i].trim()!="end"){
+       loopBlock.push(block[i]);
+       i++;
+     }
+
+     for(let k=0;k<count;k++){
+       exec(loopBlock);
+     }
+   }
+
+   // FUNCTION DEFINE
+   else if(p[0]=="function"){
+
+     let name = p[1];
+     let fblock = [];
+
+     i++;
+     while(block[i] && block[i].trim()!="end"){
+       fblock.push(block[i]);
+       i++;
+     }
+
+     funcs[name] = fblock;
+   }
+
+   // FUNCTION CALL
+   else if(p[0]=="call"){
+     if(funcs[p[1]]) exec(funcs[p[1]]);
+   }
+
+  }
+
+ }
+
+ exec(lines);
+ startGame();
+}
+function showMsg(){
+  out.innerText += "Button Clicked!\n";
+}
+function startGame(){
+
+ let ctx = game.getContext("2d");
+
+ function loop(){
+
+  // background
+  ctx.fillStyle = "black";
+  ctx.fillRect(0,0,400,200);
+
+  // road
+  ctx.fillStyle = "gray";
+  ctx.fillRect(150,0,100,200);
+
+  // moving lines
+  ctx.fillStyle = "white";
+  for(let i=0;i<5;i++){
+    ctx.fillRect(195,(i*60+roadY)%200,10,30);
+  }
+
+  roadY += 5;
+  if(roadY > 200) roadY = 0;
+
+  // player
+  ctx.fillStyle = player.color;
+  ctx.fillRect(player.x, player.y, 30, 50);
+
+  requestAnimationFrame(loop);
+ }
+
+ loop();
+}
+document.addEventListener("keydown", e=>{
+ if(e.key=="ArrowRight") player.x += player.speed;
+ if(e.key=="ArrowLeft") player.x -= player.speed;
+});
+function moveLeft(){
+  player.x -= player.speed;
+
+  if(player.x < 150) player.x = 150;
+}
+
+function moveRight(){
+  player.x += player.speed;
+
+  if(player.x > 220) player.x = 220;
+}
+</script>
+
+</body>
+</html>
